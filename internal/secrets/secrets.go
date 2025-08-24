@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"math/big"
 	"os"
 	"regexp"
@@ -267,8 +268,9 @@ func GenerateSecureKey(length int) (string, error) {
 	return key, nil
 }
 
-// WriteKeyToFile writes a key to a file with proper permissions and gitignore setup
-func WriteKeyToFile(key, filename string) error {
+// WriteKeyToFileOnly writes a key to a file with proper permissions (no gitignore)
+// Used for testing to avoid gitignore side effects
+func WriteKeyToFileOnly(key, filename string) error {
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to create key file: %w", err)
@@ -279,11 +281,38 @@ func WriteKeyToFile(key, filename string) error {
 		return fmt.Errorf("failed to write key to file: %w", err)
 	}
 
+	return nil
+}
+
+// WriteKeyToFile writes a key to a file with proper permissions and gitignore setup
+func WriteKeyToFile(key, filename string) error {
+	if err := WriteKeyToFileOnly(key, filename); err != nil {
+		return err
+	}
+
 	if err := EnsureGitIgnore(filename); err != nil {
 		fmt.Printf("Warning: Could not update .gitignore: %v\n", err)
 	}
 
 	return nil
+}
+
+// WriteGitignoreEntry writes a gitignore entry to the provided writer
+// Returns true if the entry was written, false if it already existed in the content
+func WriteGitignoreEntry(writer io.Writer, existingContent, filename string) (bool, error) {
+	lines := strings.Split(existingContent, "\n")
+	for _, line := range lines {
+		if strings.TrimSpace(line) == filename {
+			return false, nil // Already exists
+		}
+	}
+
+	// Write the new entry
+	if _, err := fmt.Fprintf(writer, "\n# Weather API encryption key\n%s\n", filename); err != nil {
+		return false, fmt.Errorf("failed to write gitignore entry: %w", err)
+	}
+
+	return true, nil
 }
 
 // EnsureGitIgnore adds the filename to .gitignore if it's not already there
@@ -297,10 +326,11 @@ func EnsureGitIgnore(filename string) error {
 		return fmt.Errorf("failed to read .gitignore: %w", err)
 	}
 
-	lines := strings.SplitSeq(string(content), "\n")
-	for line := range lines {
+	existingContent := string(content)
+	lines := strings.Split(existingContent, "\n")
+	for _, line := range lines {
 		if strings.TrimSpace(line) == filename {
-			return nil
+			return nil // Already exists
 		}
 	}
 

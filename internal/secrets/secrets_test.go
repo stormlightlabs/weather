@@ -577,10 +577,10 @@ func TestWriteKeyToFile(t *testing.T) {
 	keyFile := tempDir + "/test.key"
 	testKey := "TestKeyForFile123"
 
-	// Test writing key to file
-	err := WriteKeyToFile(testKey, keyFile)
+	// Test writing key to file (without gitignore side effects)
+	err := WriteKeyToFileOnly(testKey, keyFile)
 	if err != nil {
-		t.Fatalf("WriteKeyToFile failed: %v", err)
+		t.Fatalf("WriteKeyToFileOnly failed: %v", err)
 	}
 
 	// Check file exists and has correct content
@@ -610,18 +610,18 @@ func TestWriteKeyToFileOverwrite(t *testing.T) {
 	tempDir := t.TempDir()
 	keyFile := tempDir + "/overwrite.key"
 
-	// Write first key
+	// Write first key (without gitignore side effects)
 	firstKey := "FirstKey123Test"
-	err := WriteKeyToFile(firstKey, keyFile)
+	err := WriteKeyToFileOnly(firstKey, keyFile)
 	if err != nil {
-		t.Fatalf("first WriteKeyToFile failed: %v", err)
+		t.Fatalf("first WriteKeyToFileOnly failed: %v", err)
 	}
 
 	// Write second key (should overwrite)
 	secondKey := "SecondKey456Test"
-	err = WriteKeyToFile(secondKey, keyFile)
+	err = WriteKeyToFileOnly(secondKey, keyFile)
 	if err != nil {
-		t.Fatalf("second WriteKeyToFile failed: %v", err)
+		t.Fatalf("second WriteKeyToFileOnly failed: %v", err)
 	}
 
 	// Check file has second key content
@@ -635,103 +635,79 @@ func TestWriteKeyToFileOverwrite(t *testing.T) {
 	}
 }
 
-func TestEnsureGitIgnore(t *testing.T) {
-	tempDir := t.TempDir()
-	originalDir, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("failed to get current directory: %v", err)
-	}
-	defer os.Chdir(originalDir)
-
-	// Change to temp directory
-	err = os.Chdir(tempDir)
-	if err != nil {
-		t.Fatalf("failed to change to temp directory: %v", err)
-	}
-
+func TestWriteGitignoreEntry(t *testing.T) {
+	// Test writing gitignore entry to empty content
 	filename := "test.key"
+	existingContent := ""
 
-	// Test adding to non-existent .gitignore
-	err = EnsureGitIgnore(filename)
+	var builder strings.Builder
+	written, err := WriteGitignoreEntry(&builder, existingContent, filename)
 	if err != nil {
-		t.Fatalf("ensureGitIgnore failed: %v", err)
+		t.Fatalf("WriteGitignoreEntry failed: %v", err)
 	}
 
-	// Check .gitignore was created and contains the file
-	content, err := os.ReadFile(".gitignore")
+	if !written {
+		t.Error("Expected entry to be written for new file")
+	}
+
+	result := builder.String()
+	if !strings.Contains(result, filename) {
+		t.Errorf("Result does not contain '%s'. Content: %s", filename, result)
+	}
+	if !strings.Contains(result, "Weather API encryption key") {
+		t.Errorf("Result does not contain expected comment. Content: %s", result)
+	}
+
+	// Test adding same file again (should not write duplicate)
+	var builder2 strings.Builder
+	written2, err := WriteGitignoreEntry(&builder2, result, filename)
 	if err != nil {
-		t.Fatalf("failed to read .gitignore: %v", err)
+		t.Fatalf("second WriteGitignoreEntry failed: %v", err)
 	}
 
-	contentStr := string(content)
-	if !strings.Contains(contentStr, filename) {
-		t.Errorf(".gitignore does not contain '%s'. Content: %s", filename, contentStr)
+	if written2 {
+		t.Error("Expected entry NOT to be written for existing file")
 	}
 
-	// Test adding same file again (should not duplicate)
-	err = EnsureGitIgnore(filename)
-	if err != nil {
-		t.Fatalf("second ensureGitIgnore failed: %v", err)
-	}
-
-	// Check file is still only mentioned once
-	content2, err := os.ReadFile(".gitignore")
-	if err != nil {
-		t.Fatalf("failed to read .gitignore second time: %v", err)
-	}
-
-	lines := strings.Split(string(content2), "\n")
-	count := 0
-	for _, line := range lines {
-		if strings.TrimSpace(line) == filename {
-			count++
-		}
-	}
-
-	if count != 1 {
-		t.Errorf("expected filename to appear once in .gitignore, found %d times", count)
+	// Result should be empty since nothing was written
+	result2 := builder2.String()
+	if result2 != "" {
+		t.Errorf("Expected no output for duplicate entry, got: %s", result2)
 	}
 }
 
-func TestEnsureGitIgnoreExisting(t *testing.T) {
-	tempDir := t.TempDir()
-	originalDir, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("failed to get current directory: %v", err)
-	}
-	defer os.Chdir(originalDir)
-
-	// Change to temp directory
-	err = os.Chdir(tempDir)
-	if err != nil {
-		t.Fatalf("failed to change to temp directory: %v", err)
-	}
-
-	// Create existing .gitignore with some content
-	existingContent := "node_modules/\n*.log\n"
-	err = os.WriteFile(".gitignore", []byte(existingContent), 0644)
-	if err != nil {
-		t.Fatalf("failed to create existing .gitignore: %v", err)
-	}
-
+func TestWriteGitignoreEntryWithExisting(t *testing.T) {
+	// Test writing gitignore entry to existing content
 	filename := "secret.key"
-	err = EnsureGitIgnore(filename)
+	existingContent := "node_modules/\n*.log\n"
+
+	var builder strings.Builder
+	// First write existing content
+	builder.WriteString(existingContent)
+
+	written, err := WriteGitignoreEntry(&builder, existingContent, filename)
 	if err != nil {
-		t.Fatalf("ensureGitIgnore failed: %v", err)
+		t.Fatalf("WriteGitignoreEntry failed: %v", err)
 	}
 
-	// Check .gitignore contains both old and new content
-	content, err := os.ReadFile(".gitignore")
-	if err != nil {
-		t.Fatalf("failed to read .gitignore: %v", err)
+	if !written {
+		t.Error("Expected entry to be written for new file")
 	}
 
-	contentStr := string(content)
-	if !strings.Contains(contentStr, "node_modules/") {
-		t.Error(".gitignore missing original content")
+	result := builder.String()
+
+	// Check both old and new content exists
+	if !strings.Contains(result, "node_modules/") {
+		t.Errorf("Result does not contain original content 'node_modules/'. Content: %s", result)
 	}
-	if !strings.Contains(contentStr, filename) {
-		t.Errorf(".gitignore missing new filename '%s'", filename)
+	if !strings.Contains(result, "*.log") {
+		t.Errorf("Result does not contain original content '*.log'. Content: %s", result)
+	}
+	if !strings.Contains(result, filename) {
+		t.Errorf("Result does not contain new file '%s'. Content: %s", filename, result)
+	}
+	if !strings.Contains(result, "Weather API encryption key") {
+		t.Errorf("Result does not contain expected comment. Content: %s", result)
 	}
 }
 
@@ -770,16 +746,13 @@ func TestShuffleString(t *testing.T) {
 	original := "abcdefghijklmnop"
 	shuffled := ShuffleString(original)
 
-	// Should have same length
 	if len(shuffled) != len(original) {
 		t.Errorf("shuffled string length %d, expected %d", len(shuffled), len(original))
 	}
 
-	// Should contain same characters (different order)
 	originalRunes := []rune(original)
 	shuffledRunes := []rune(shuffled)
 
-	// Count character frequencies
 	originalFreq := make(map[rune]int)
 	shuffledFreq := make(map[rune]int)
 
@@ -790,7 +763,6 @@ func TestShuffleString(t *testing.T) {
 		shuffledFreq[r]++
 	}
 
-	// Frequencies should match
 	if len(originalFreq) != len(shuffledFreq) {
 		t.Error("shuffled string has different character set")
 	}
@@ -801,7 +773,6 @@ func TestShuffleString(t *testing.T) {
 		}
 	}
 
-	// Test multiple shuffles to ensure randomness
 	same := 0
 	for i := 0; i < 20; i++ {
 		if ShuffleString(original) == original {
@@ -809,7 +780,6 @@ func TestShuffleString(t *testing.T) {
 		}
 	}
 
-	// It's extremely unlikely (but not impossible) for all shuffles to be identical
 	if same == 20 {
 		t.Error("shuffleString appears to be non-random (all results identical to input)")
 	}
