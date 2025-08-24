@@ -43,7 +43,7 @@ type CensusGeocodeResponse struct {
 }
 
 type CensusResult struct {
-	Input       CensusInput           `json:"input"`
+	Input          CensusInput          `json:"input"`
 	AddressMatches []CensusAddressMatch `json:"addressMatches"`
 }
 
@@ -56,9 +56,9 @@ type CensusInputAddress struct {
 }
 
 type CensusAddressMatch struct {
-	MatchedAddress string                `json:"matchedAddress"`
-	Coordinates    CensusCoordinates     `json:"coordinates"`
-	TigerLine      CensusTigerLine       `json:"tigerLine"`
+	MatchedAddress    string                  `json:"matchedAddress"`
+	Coordinates       CensusCoordinates       `json:"coordinates"`
+	TigerLine         CensusTigerLine         `json:"tigerLine"`
 	AddressComponents CensusAddressComponents `json:"addressComponents"`
 }
 
@@ -68,23 +68,23 @@ type CensusCoordinates struct {
 }
 
 type CensusTigerLine struct {
-	Side     string `json:"side"`
+	Side        string `json:"side"`
 	TigerLineId string `json:"tigerLineId"`
 }
 
 type CensusAddressComponents struct {
-	Zip            string `json:"zip"`
-	StreetName     string `json:"streetName"`
-	PreType        string `json:"preType"`
-	City           string `json:"city"`
-	PreDirection   string `json:"preDirection"`
+	Zip             string `json:"zip"`
+	StreetName      string `json:"streetName"`
+	PreType         string `json:"preType"`
+	City            string `json:"city"`
+	PreDirection    string `json:"preDirection"`
 	SuffixDirection string `json:"suffixDirection"`
-	FromAddress    string `json:"fromAddress"`
-	State          string `json:"state"`
-	SuffixType     string `json:"suffixType"`
-	ToAddress      string `json:"toAddress"`
+	FromAddress     string `json:"fromAddress"`
+	State           string `json:"state"`
+	SuffixType      string `json:"suffixType"`
+	ToAddress       string `json:"toAddress"`
 	SuffixQualifier string `json:"suffixQualifier"`
-	PreQualifier   string `json:"preQualifier"`
+	PreQualifier    string `json:"preQualifier"`
 }
 
 // Census Reverse Geocode Response structures
@@ -93,8 +93,8 @@ type CensusReverseGeocodeResponse struct {
 }
 
 type CensusReverseResult struct {
-	Input         CensusReverseInput      `json:"input"`
-	AddressMatches []CensusReverseMatch   `json:"addressMatches"`
+	Input          CensusReverseInput   `json:"input"`
+	AddressMatches []CensusReverseMatch `json:"addressMatches"`
 }
 
 type CensusReverseInput struct {
@@ -107,18 +107,18 @@ type CensusLocation struct {
 }
 
 type CensusReverseMatch struct {
-	MatchedAddress    string                    `json:"matchedAddress"`
-	AddressComponents CensusAddressComponents   `json:"addressComponents"`
-	TigerLine         CensusTigerLine          `json:"tigerLine"`
-	Coordinates       CensusCoordinates         `json:"coordinates"`
+	MatchedAddress    string                  `json:"matchedAddress"`
+	AddressComponents CensusAddressComponents `json:"addressComponents"`
+	TigerLine         CensusTigerLine         `json:"tigerLine"`
+	Coordinates       CensusCoordinates       `json:"coordinates"`
 }
 
 func (c *CensusProvider) GeocodeAddress(ctx context.Context, address string) ([]*models.Place, error) {
 	// Build the geocoding request URL
 	params := url.Values{
-		"address": {address},
-		"format":  {"json"},
-		"benchmark": {"2020"}, // Use 2020 Census benchmark
+		"address":   {address},
+		"format":    {"json"},
+		"benchmark": {"2020"},            // Use 2020 Census benchmark
 		"vintage":   {"Current_Current"}, // Current address range and current TIGER
 	}
 
@@ -156,7 +156,7 @@ func (c *CensusProvider) ReverseGeocode(ctx context.Context, lat, lon float64) (
 		"x":         {fmt.Sprintf("%.6f", lon)},
 		"y":         {fmt.Sprintf("%.6f", lat)},
 		"format":    {"json"},
-		"benchmark": {"2020"}, // Use 2020 Census benchmark
+		"benchmark": {"2020"},            // Use 2020 Census benchmark
 		"vintage":   {"Current_Current"}, // Current address range and current TIGER
 	}
 
@@ -293,7 +293,7 @@ func (c *CensusProvider) buildAddressLine1(components *CensusAddressComponents) 
 	if components.PreQualifier != "" {
 		parts = append(parts, components.PreQualifier)
 	}
-	
+
 	if components.SuffixQualifier != "" {
 		parts = append(parts, components.SuffixQualifier)
 	}
@@ -313,7 +313,7 @@ func (c *CensusProvider) calculateConfidence(original, matched string) float64 {
 	// Calculate a simple similarity score
 	originalWords := strings.Fields(original)
 	matchedWords := strings.Fields(matched)
-	
+
 	commonWords := 0
 	for _, originalWord := range originalWords {
 		for _, matchedWord := range matchedWords {
@@ -329,7 +329,7 @@ func (c *CensusProvider) calculateConfidence(original, matched string) float64 {
 	}
 
 	similarity := float64(commonWords) / float64(len(originalWords))
-	
+
 	// Ensure confidence is between 0.1 and 0.95 for geocoding results
 	if similarity < 0.1 {
 		return 0.1
@@ -337,7 +337,7 @@ func (c *CensusProvider) calculateConfidence(original, matched string) float64 {
 	if similarity > 0.95 {
 		return 0.95
 	}
-	
+
 	return similarity
 }
 

@@ -11,16 +11,16 @@ import (
 type WeatherProvider interface {
 	// GetName returns the provider name (e.g., "NWS", "Met.no")
 	GetName() string
-	
+
 	// GetCurrentWeather retrieves current weather conditions for a location
 	GetCurrentWeather(ctx context.Context, lat, lon float64) (*models.Forecast, error)
-	
+
 	// GetForecast retrieves weather forecast for a location
 	GetForecast(ctx context.Context, lat, lon float64, days int) ([]*models.Forecast, error)
-	
+
 	// GetAlerts retrieves weather alerts for a location (if supported)
 	GetAlerts(ctx context.Context, lat, lon float64) ([]WeatherAlert, error)
-	
+
 	// SupportedRegions returns the geographic regions this provider supports
 	SupportedRegions() []string
 }
@@ -29,13 +29,13 @@ type WeatherProvider interface {
 type GeocodeProvider interface {
 	// GetName returns the provider name (e.g., "Census", "Nominatim")
 	GetName() string
-	
+
 	// GeocodeAddress converts an address string to coordinates and place info
 	GeocodeAddress(ctx context.Context, address string) ([]*models.Place, error)
-	
+
 	// ReverseGeocode converts coordinates to address information
 	ReverseGeocode(ctx context.Context, lat, lon float64) (*models.Place, error)
-	
+
 	// SupportedRegions returns the geographic regions this provider supports
 	SupportedRegions() []string
 }
@@ -55,18 +55,18 @@ type WeatherAlert struct {
 
 // ProviderResponse wraps provider responses with metadata
 type ProviderResponse struct {
-	Provider  string      `json:"provider"`
-	Timestamp time.Time   `json:"timestamp"`
-	Data      interface{} `json:"data"`
-	Error     error       `json:"error,omitempty"`
-	Cached    bool        `json:"cached"`
+	Provider  string        `json:"provider"`
+	Timestamp time.Time     `json:"timestamp"`
+	Data      interface{}   `json:"data"`
+	Error     error         `json:"error,omitempty"`
+	Cached    bool          `json:"cached"`
 	TTL       time.Duration `json:"ttl,omitempty"`
 }
 
 // ProviderManager manages multiple providers
 type ProviderManager struct {
-	weatherProviders  []WeatherProvider
-	geocodeProviders  []GeocodeProvider
+	weatherProviders []WeatherProvider
+	geocodeProviders []GeocodeProvider
 }
 
 // NewProviderManager creates a new provider manager
