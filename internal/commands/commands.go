@@ -153,3 +153,30 @@ func DocCommand(logger *log.Logger) *cli.Command {
 		},
 	}
 }
+
+// GenerateKeyCommand creates the key generation command
+func GenerateKeyCommand(logger *log.Logger) *cli.Command {
+	return &cli.Command{
+		Name:  "generate-key",
+		Usage: "Generate a secure encryption key",
+		Flags: []cli.Flag{
+			&cli.IntFlag{
+				Name:  "length",
+				Value: 16,
+				Usage: "Key length in characters (minimum 12)",
+			},
+			&cli.StringFlag{
+				Name:  "output",
+				Value: ".env.key",
+				Usage: "Output file (.env.key is default, use 'stdout' for console output)",
+			},
+			&cli.BoolFlag{
+				Name:  "quiet",
+				Usage: "Only output the key, no additional messages",
+			},
+		},
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return generateKey(ctx, cmd, logger)
+		},
+	}
+}

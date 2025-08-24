@@ -1,5 +1,8 @@
 # Stormlight Weather API
 
+A comprehensive weather API service that aggregates data from multiple official weather services including NOAA NWS and international sources,
+with built-in geocoding capabilities using the US Census Geocoder.
+
 ## Architecture
 
 ## Toolchain
@@ -34,3 +37,8 @@ Postgres & KeyDB (Request Caching)
 | **Natural Earth Data**        | Static global country/city boundaries    | Global                  | [Data](https://www.naturalearthdata.com/) (not an API, but for static data)                                                    |
 | **GADM**                      | Administrative boundaries                | Global                  | Shapefiles for countries, provinces, etc.                                                                                      |
 | **OpenAddresses**             | Open-source address points               | Global (some countries) | Raw dumps, no API. Self-hosting needed                                                                                         |
+
+## Encryption
+
+The secrets package provides secure configuration management using AES-256-GCM encryption with scrypt key derivation for sensitive environment variables (see [`env.local`](env.local)).
+Keys can be sourced from CLI arguments, environment variables, or interactive prompts, with built-in validation requiring 12+ characters, mixed case, digits, and forbidden pattern detection. Values are encrypted in a salt:nonce:ciphertext format, allowing seamless handling where non-encrypted values pass through unchanged while encrypted values are automatically decrypted when accessed.

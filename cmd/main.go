@@ -8,6 +8,7 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"stormlightlabs.org/weather_api/internal/commands"
+	"stormlightlabs.org/weather_api/internal/secrets"
 )
 
 func main() {
@@ -15,6 +16,11 @@ func main() {
 		ReportCaller:    true,
 		ReportTimestamp: true,
 	})
+
+	_, err := secrets.LoadConfig()
+	if err != nil {
+		logger.Fatal("Failed to load configuration", "error", err)
+	}
 
 	app := &cli.Command{
 		Name:    "weather-api",
@@ -25,6 +31,7 @@ func main() {
 			commands.MigrateCommand(logger),
 			commands.EncryptCommand(logger),
 			commands.DecryptCommand(logger),
+			commands.GenerateKeyCommand(logger),
 			commands.HTTPCommand(logger),
 			commands.DocCommand(logger),
 		},
